@@ -14,5 +14,6 @@ Bibliography:
 - Gregory, William, Isobel R. Lawrence, and Michel Tsamados. "A Bayesian approach towards daily pan-Arctic sea ice freeboard estimates from combined CryoSat-2 and Sentinel-3 satellite observations." The Cryosphere Discussions (2021): 1-22.
 - Tarantola, Albert. Inverse problem theory and methods for model parameter estimation. Society for Industrial and Applied Mathematics, 2005.
 
+![image](https://user-images.githubusercontent.com/29431131/135485368-be2941c0-93b0-4874-8401-1d1108b041a1.png)
 
-Schematic representation of laser or radar penetration into the snow from CryoSat-2 Ku-band (13.5 GHz) radar (a), AltiKa Ka-band (35 GHz) radar (b), laser reﬂection from the snow as seen from Operation IceBridge airborne measurements (c), and snow thickness measurement from snow radar on-board OIB (d).
+Schematic representation of laser or radar penetration into the snow from CryoSat-2 Ku-band (13.5 GHz) radar (a), AltiKa Ka-band (35 GHz) radar (b), laser reﬂection from the snow as seen from Operation IceBridge airborne measurements (c), and snow thickness measurement from snow radar on-board OIB (d). Credit: Isobel Lawrence
