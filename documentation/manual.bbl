@@ -1,0 +1,14 @@
+\begin{thebibliography}{1}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[R. et~al.(2018)R., T., M., G., and L.]{Hawkins:2018:B}
+Hawkins R., Bodin T., Sambridge M., Choblet G., and Husson L.
+\newblock Trans-dimensional surface reconstruction with different classes of
+  parameterization.
+\newblock \emph{Geochemistry, Geophysics, Geosystems}, 2018.
+
+\end{thebibliography}
