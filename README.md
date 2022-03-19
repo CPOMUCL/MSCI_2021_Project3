@@ -23,7 +23,7 @@ Inside of the `snow_ice` folder there are a few models that can be used. In orde
 
 And then run the inversion using:
 ```
-python InversionBinnedParallel
+> python InversionBinnedParallel.py
 ```
 
 
