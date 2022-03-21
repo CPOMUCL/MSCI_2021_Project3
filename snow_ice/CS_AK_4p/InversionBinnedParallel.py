@@ -41,25 +41,39 @@ def mask_observations(observations, inversion):
                 new_inversion[i][j] = np.nan
     return new_inversion
 
+'''
+CPOM DATA: 
+fb_path1 = "../data/CPOM/freeboard_daily_processed/CS2_CPOM/dailyFB_50km_2019-2020_season.pkl"
+fb_path2 = "../data/CPOM/freeboard_daily_processed/AK_CPOM/dailyFB_50km_2019-2020_season.pkl"
+
+BRISTOL DATA:
+fb_path1="../data/CPOM/freeboard_daily_processed/Bristol_LARM/CS2/freeboard/dailyFB_50km_2019-2020_season.pkl",
+fb_path2="../data/CPOM/freeboard_daily_processed/Bristol_LARM/AK/dailyFB_50km_2019-2020_season.pkl",
+
+'''
 def main(
-    fb_path1="../data/CPOM/freeboard_daily_processed/CS2_CPOM/dailyFB_50km_2013-2014_season.pkl",
-    fb_path2="../data/CPOM/freeboard_daily_processed/AK_CPOM/dailyFB_50km_2013-2014_season.pkl",
+    fb_path1 = "../data/CPOM/freeboard_daily_processed/CS2_CPOM/dailyFB_50km_2019-2020_season.pkl",
+    fb_path2 = "../data/CPOM/freeboard_daily_processed/AK_CPOM/dailyFB_50km_2019-2020_season.pkl",
     verbose=False,
-    minlat = 0, maxlat = 7950000.0,
-    minlon = 0, maxlon = 7950000.0,
-    sliding_window = 14,
-    parametrization = 0,
-    iterations_number = 100000,
+    minlat = -0.1, maxlat = 7950000.0/1000000,
+    minlon = -0.1, maxlon = 7950000.0/1000000,
+    sliding_window = 30,
+    parametrization = 2,
+    initial_cells = 1,
+    iterations_number = 200000,
     verbosity = 50000,
-    independent_chains = 2,
-    temperature_levels = 2,
-    maximum_temperature = 5.0,
+    independent_chains = 4,
+    temperature_levels = 1,
+    maximum_temperature = 2.0,
     iterations_between_tempering_attempts = 10,
-    skipping = 50000,
-    thinning = 100,
+    skipping = 100000,
+    thinning = 5,
     render_map=True,
-    render_matrix=True,
-    render_observations=True
+    render_matrix=False,
+    render_observations=False,
+    render_median = False,
+    render_stddev = False,
+    render_histogram = True
          ):
 
     if verbose:
@@ -83,10 +97,9 @@ def main(
     ak_map = np.empty(shape)
     cs2_map = np.empty(shape)
 
-    for i, date in enumerate(list(fb1.keys())[50:50+sliding_window]):
-        cs2_map[i] += fb1[date]
-        ak_map[i] += fb2[date]
-        print(date)
+    for i, date in enumerate(list(fb1.keys())[100:100+sliding_window]):
+        cs2_map[i] += fb1[date][:160, :160]
+        ak_map[i] += fb2[date][:160, :160]
 
 
     with warnings.catch_warnings():
@@ -99,12 +112,12 @@ def main(
     cs2_observations = []
 
     shape = list(fb1.values())[0].shape
-    for i in range(shape[0]):
-        for j in range(shape[1]):
+    for i in range(160):
+        for j in range(160):
             if not np.isnan(cs2_mean[i][j]):
-                cs2_observations.append([grid_x[i][j], grid_y[i][j], 0, cs2_mean[i][j], 1.0])                    
+                cs2_observations.append([grid_x[i][j]/1000000, grid_y[i][j]/1000000, 0, cs2_mean[i][j], 0.01])                    
             if not np.isnan(ak_mean[i][j]):
-                ak_observations.append([grid_x[i][j], grid_y[i][j], 1, ak_mean[i][j], 1.0])
+                ak_observations.append([grid_x[i][j]/1000000, grid_y[i][j]/1000000, 1, ak_mean[i][j], 0.01])
 
 
     cs2_observations.extend(ak_observations)
@@ -148,7 +161,7 @@ def main(
     #parametrization = 0 # 0 for Voronoi, 1 for Delaunay linear, 2 for Delaunay Clough-Tocher
     #iterations_number = 100000
     #verbosity = 50000
-
+    #
     # Run inversion
     subprocess.run([
                 "mpirun", "-np", str(independent_chains * temperature_levels),
@@ -157,15 +170,14 @@ def main(
                 "-o", "results/", 
                 "-P", "priors/prior_snow.txt",
                 "-P", "priors/prior_ice.txt", 
-                "-P", "priors/prior_cs2_penetration.txt",
-                "-P", "priors/prior_ak_penetration.txt",
                 "-M", "priors/positionprior_snow.txt", 
                 "-M", "priors/positionprior_ice.txt",
-                "-M", "priors/positionprior_cs2_penetration.txt",
-                "-M", "priors/positionprior_ak_penetration.txt",
+                "-H", "priors/hierarchical_snow.txt", 
+                "-H", "priors/hierarchical_ice.txt", 
+                "-C", str(initial_cells),
                 "-x", str(minlon), "-X", str(maxlon),
                 "-y", str(minlat), "-Y", str(maxlat),
-                "-A", str(parametrization), "-A", str(parametrization), "-A", str(parametrization), "-A", str(parametrization),
+                "-A", str(parametrization), "-A", str(parametrization),
                 "-t", str(iterations_number), 
                 "-v", str(verbosity),
                 "-c", str(independent_chains),    # Independent chains to run at each temperature
@@ -178,14 +190,12 @@ def main(
     parameter_W = 160
     parameter_H = 160
 
-    file_snow = f"images/means/{fb1_filename}_snow"
-    file_ice = f"images/means/{fb1_filename}_ice"
-    file_cs2_penetration = f"images/means/{fb1_filename}_cs2_penetration"
-    file_ak_penetration = f"images/means/{fb2_filename}_ak_penetration"
+    file_snow = f"images/{fb1_filename}_snow"
+    file_ice = f"images/{fb1_filename}_ice"
 
 
     subprocess.run([
-                "mpirun", "-np", str(2),
+                "mpirun", "-np", str(independent_chains),
                 "./post_mean_mpi", "-i", 
                 "results/ch.dat", "-o", file_snow,
                 "-x", str(minlon), "-X", str(maxlon),
@@ -194,10 +204,13 @@ def main(
                 "-t", str(thinning),
                 "-A", str(parametrization), "-A", str(parametrization),
                 "-W", str(parameter_W), "-H", str(parameter_H),
+                "-D", str(file_snow + "_stddev"),
+                "-m", str(file_snow + "_median"),
+#                "-g", str(file_snow + "_histogram"),
                 "-I", str(0)])
 
     subprocess.run([
-                "mpirun", "-np", str(2),
+                "mpirun", "-np", str(independent_chains),
                 "./post_mean_mpi", "-i", 
                 "results/ch.dat", "-o", file_ice,
                 "-x", str(minlon), "-X", str(maxlon),
@@ -206,46 +219,19 @@ def main(
                 "-t", str(thinning),
                 "-A", str(parametrization), "-A", str(parametrization),
                 "-W", str(parameter_W), "-H", str(parameter_H),
-                "-I", str(1)])
-
-    subprocess.run([
-                "mpirun", "-np", str(2),
-                "./post_mean_mpi", "-i", 
-                "results/ch.dat", "-o", file_cs2_penetration,
-                "-x", str(minlon), "-X", str(maxlon),
-                "-y", str(minlat), "-Y", str(maxlat),
-                "-s", str(skipping),
-                "-t", str(thinning),
-                "-A", str(parametrization), "-A", str(parametrization),
-                "-W", str(parameter_W), "-H", str(parameter_H),
-                "-I", str(2)])
-    
-    subprocess.run([
-                "mpirun", "-np", str(2),
-                "./post_mean_mpi", "-i", 
-                "results/ch.dat", "-o", file_ak_penetration,
-                "-x", str(minlon), "-X", str(maxlon),
-                "-y", str(minlat), "-Y", str(maxlat),
-                "-s", str(skipping),
-                "-t", str(thinning),
-                "-A", str(parametrization), "-A", str(parametrization),
-                "-W", str(parameter_W), "-H", str(parameter_H),
-                "-I", str(3)])
-
-
-
+                "-D", str(file_ice + "_stddev"),
+                "-m", str(file_ice + "_median"),
+#                "-g", str(file_ice + "_histogram"),
+                "-I", str(1)])            
+       
     '''
     Step 4: Produce and save plots
     '''
     snow_mat = np.loadtxt(file_snow)
     ice_mat = np.loadtxt(file_ice)
-    cs2_penetration_mat = np.loadtxt(file_cs2_penetration)
-    ak_penetration_mat = np.loadtxt(file_ak_penetration)
 
     snow_mat = mask_observations(cs2_mean, snow_mat)
     ice_mat = mask_observations(cs2_mean, ice_mat)
-    cs2_penetration_mat = mask_observations(cs2_mean, cs2_penetration_mat)
-    ak_penetration_mat = mask_observations(ak_mean,ak_penetration_mat)
 
 
     lon = np.linspace(minlon, maxlon, 160)
@@ -259,25 +245,18 @@ def main(
 
 
     if render_matrix:
-        fig, ax = plt.subplots(2, 2, figsize=(15, 12))
+        fig, ax = plt.subplots(1, 2, figsize=(15, 12))
         
-        img = ax[0, 0].imshow(snow_mat, cmap='seismic', aspect='auto', extent=extent, interpolation='None')
-        ax[0, 0].set_title('Snow thickness')
-        plt.colorbar(img, ax=ax[0, 0])
+        img = ax[0].imshow(snow_mat, cmap='seismic', aspect='auto', extent=extent, interpolation='None')
+        ax[0].set_title('Snow thickness')
+        plt.colorbar(img, ax=ax[0])
 
-        img = ax[0, 1].imshow(ice_mat, cmap='seismic', aspect='auto', extent=extent, interpolation='None')
-        ax[0, 1].set_title('Ice thickness')
-        plt.colorbar(img, ax=ax[0, 1])
-
-        img = ax[1, 0].imshow(cs2_penetration_mat, cmap='seismic', aspect='auto', extent=extent, interpolation='None')
-        ax[1, 0].set_title('CryoSat-2 penetration factor')
-        plt.colorbar(img, ax=ax[1, 0])
-
-        img = ax[1, 1].imshow(ak_penetration_mat, cmap='seismic', aspect='auto', extent=extent, interpolation='None')
-        ax[1, 1].set_title('AltiKa-2 penetration factor')
-        plt.colorbar(img, ax=ax[1, 1])
+        img = ax[1].imshow(ice_mat, cmap='seismic', aspect='auto', extent=extent, interpolation='None')
+        ax[1].set_title('Ice thickness')
+        plt.colorbar(img, ax=ax[1])
 
         plt.show()
+
 
     if render_map:
         fig = plt.figure(figsize=(16, 20))
@@ -294,24 +273,87 @@ def main(
         m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=ice_mat, cmap="seismic")
         plt.colorbar(label=r'Ice Thickness (m)')
 
-        ax = fig.add_subplot(223)
-        m = Basemap(projection='lcc', resolution=None, lat_0=-90, lon_0=0, lat_1=89.9, lon_1=180, width=1E7, height=0.5E7)
-        draw_map(m)
-        m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=cs2_penetration_mat, cmap="seismic")
-        plt.colorbar(label=r'CryoSat-2 Penetration Factor')
+
+        plt.show()
+
+    snow_std = np.loadtxt(file_snow + "_stddev")
+    ice_std = np.loadtxt(file_ice + "_stddev")
+
+    snow_std = mask_observations(cs2_mean, snow_std)
+    ice_std = mask_observations(cs2_mean, ice_std)
 
 
-        ax = fig.add_subplot(224)
+    if render_stddev:
+        fig = plt.figure(figsize=(16, 20))
+        ax = fig.add_subplot(221)
+
         m = Basemap(projection='lcc', resolution=None, lat_0=-90, lon_0=0, lat_1=89.9, lon_1=180, width=1E7, height=0.5E7)
         draw_map(m)
-        m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=ak_penetration_mat, cmap="seismic")
-        plt.colorbar(label=r'AltiKa Penetration Factor')
+        m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=snow_std, cmap="seismic")
+        plt.colorbar(label=r'Snow Thickness Std (m)')
+
+        ax = fig.add_subplot(222)
+        m = Basemap(projection='lcc', resolution=None, lat_0=-90, lon_0=0, lat_1=89.9, lon_1=180, width=1E7, height=0.5E7)
+        draw_map(m)
+        m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=ice_std, cmap="seismic")
+        plt.colorbar(label=r'Ice Thickness Std (m)')
 
 
         plt.show()
 
 
-    return snow_mat, ice_mat, cs2_penetration_mat, ak_penetration_mat
+    '''
+    snow_hist = np.loadtxt(file_snow + "_histogram")
+    ice_hist = np.loadtxt(file_ice + "_histogram")
+
+    snow_hist = mask_observations(cs2_mean, snow_hist)
+    ice_hist = mask_observations(cs2_mean, ice_hist)
+
+    if render_histogram:
+        fig = plt.figure(figsize=(16, 20))
+        ax = fig.add_subplot(221)
+
+        m = Basemap(projection='lcc', resolution=None, lat_0=-90, lon_0=0, lat_1=89.9, lon_1=180, width=1E7, height=0.5E7)
+        draw_map(m)
+        m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=snow_hist, cmap="seismic")
+        plt.colorbar(label=r'Snow Thickness (m)')
+
+        ax = fig.add_subplot(222)
+        m = Basemap(projection='lcc', resolution=None, lat_0=-90, lon_0=0, lat_1=89.9, lon_1=180, width=1E7, height=0.5E7)
+        draw_map(m)
+        m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=ice_hist, cmap="seismic")
+        plt.colorbar(label=r'Ice Thickness (m)')
+
+
+        plt.show()
+    '''
+
+    snow_median = np.loadtxt(file_snow + "_median")
+    ice_median = np.loadtxt(file_ice + "_median")
+
+    snow_median = mask_observations(cs2_mean, snow_median)
+    ice_median = mask_observations(cs2_mean, ice_median)
+
+
+    if render_median:
+        fig = plt.figure(figsize=(16, 20))
+        ax = fig.add_subplot(221)
+
+        m = Basemap(projection='lcc', resolution=None, lat_0=-90, lon_0=0, lat_1=89.9, lon_1=180, width=1E7, height=0.5E7)
+        draw_map(m)
+        m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=snow_median, cmap="seismic")
+        plt.colorbar(label=r'Snow Thickness Median (m)')
+
+        ax = fig.add_subplot(222)
+        m = Basemap(projection='lcc', resolution=None, lat_0=-90, lon_0=0, lat_1=89.9, lon_1=180, width=1E7, height=0.5E7)
+        draw_map(m)
+        m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=ice_median, cmap="seismic")
+        plt.colorbar(label=r'Ice Thickness Median (m)')
+
+
+        plt.show()
+
+    return snow_mat, ice_mat
 
 if __name__ == "__main__":
     main()

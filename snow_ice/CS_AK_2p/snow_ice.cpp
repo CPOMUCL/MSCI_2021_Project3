@@ -151,7 +151,7 @@ int gvcart_compute_prediction_(int * nmodels,
     switch (obs[ * observation].type) {
 
         case CS2_FREEBOARD_OBS: // CS2 Freeboard Observations, we have two models loaded, snow->value[0] and ice->value[1]
-            prediction[0] = (DENSITY_WATER - DENSITY_ICE)/DENSITY_WATER * value[1] + (1  -SPEED_OF_LIGHT_VACUUM_OVER_SPEED_OF_LIGHT_SNOW - DENSITY_SNOW/DENSITY_WATER) * value[0];
+            prediction[0] = (DENSITY_WATER - DENSITY_ICE)/DENSITY_WATER * value[1] + (1  - SPEED_OF_LIGHT_VACUUM_OVER_SPEED_OF_LIGHT_SNOW - DENSITY_SNOW/DENSITY_WATER) * value[0];
             weight[0] = (1  - SPEED_OF_LIGHT_VACUUM_OVER_SPEED_OF_LIGHT_SNOW - DENSITY_SNOW/DENSITY_WATER);
             weight[1] = (DENSITY_WATER - DENSITY_ICE)/DENSITY_WATER;
 
@@ -188,7 +188,7 @@ int gvcart_compute_likelihood_(int * nmodel,
     constexpr double NORMSCALE = 0.9189385332046727; //0.5*log(2.0*M_PI);
     double sum = 0.0;
     double norm = 0.0;
-    double loghierarchical[3];
+    double loghierarchical[2];
     for (int i = 0; i < * nhierarchical; i++) {
         loghierarchical[i] = log(hierarchical[i]);
     }

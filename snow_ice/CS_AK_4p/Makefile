@@ -28,7 +28,8 @@ LIBS = -L../../lib -ldelaunay \
 
 TARGETOBJS = snow_ice.o \
 
-TARGETS = snow_ice \
+TARGETS = mksynthetic \
+	snow_ice \
 	snow_icept \
 	snow_icehmc \
 	snow_icehmcpt \
@@ -49,6 +50,9 @@ snow_ice.o : snow_ice.cpp
 
 ../base/%.o : ../base/%.cpp
 	make -C ../base  $*.o
+
+mksynthetic : $(TARGETOBJS) $(BASEOBJS) ../../base/mksynthetic.o
+	$(CXX) -o $@ $(TARGETOBJS) $(BASEOBJS) ../../base/mksynthetic.o $(LIBS)
 
 snow_ice : $(TARGETOBJS) $(BASEOBJS) ../../base/generalvoronoicartesian.o 
 	$(CXX) -o $@ $(TARGETOBJS) $(BASEOBJS) ../../base/generalvoronoicartesian.o $(LIBS)
