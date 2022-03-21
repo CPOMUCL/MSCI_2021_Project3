@@ -89,8 +89,6 @@ def main(
         "python", "../../scripts/generatedualtemplatepoints.py",
         "-A", str(observation_points),
         "-B", str(observation_points),
-        "-C", str(observation_points),
-        "-D", str(observation_points),
         "-o", "synthetic/datatemplate.txt",
         "--xmin", str(minlon), "--xmax", str(maxlon),
         "--ymin", str(minlat), "--ymax", str(maxlat)

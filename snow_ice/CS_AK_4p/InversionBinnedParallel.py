@@ -59,7 +59,7 @@ def main(
     minlon = -0.1, maxlon = 7950000.0/1000000,
     sliding_window = 30,
     parametrization = 2,
-    initial_cells = 1,
+    initial_cells = 5,
     iterations_number = 200000,
     verbosity = 50000,
     independent_chains = 4,
@@ -72,7 +72,7 @@ def main(
     render_matrix=False,
     render_observations=False,
     render_median = False,
-    render_stddev = False,
+    render_stddev = True,
     render_histogram = True
          ):
 
@@ -170,13 +170,20 @@ def main(
                 "-o", "results/", 
                 "-P", "priors/prior_snow.txt",
                 "-P", "priors/prior_ice.txt", 
+               "-P", "priors/prior_cs2_penetration.txt",
+                "-P", "priors/prior_ak_penetration.txt",
                 "-M", "priors/positionprior_snow.txt", 
                 "-M", "priors/positionprior_ice.txt",
+                "-M", "priors/positionprior_cs2_penetration.txt",
+                "-M", "priors/positionprior_ak_penetration.txt",
                 "-H", "priors/hierarchical_snow.txt", 
                 "-H", "priors/hierarchical_ice.txt", 
+                "-H", "priors/hierarchical_cs2_penetration.txt", 
+                "-H", "priors/hierarchical_ak_penetration.txt", 
                 "-C", str(initial_cells),
                 "-x", str(minlon), "-X", str(maxlon),
                 "-y", str(minlat), "-Y", str(maxlat),
+                "-A", str(parametrization), "-A", str(parametrization),
                 "-A", str(parametrization), "-A", str(parametrization),
                 "-t", str(iterations_number), 
                 "-v", str(verbosity),
@@ -192,6 +199,8 @@ def main(
 
     file_snow = f"images/{fb1_filename}_snow"
     file_ice = f"images/{fb1_filename}_ice"
+    file_cs2_penetration = f"images/{fb1_filename}_cs2_penetration"
+    file_ak_penetration = f"images/{fb2_filename}_ak_penetration"
 
 
     subprocess.run([
@@ -202,6 +211,7 @@ def main(
                 "-y", str(minlat), "-Y", str(maxlat),
                 "-s", str(skipping),
                 "-t", str(thinning),
+                "-A", str(parametrization), "-A", str(parametrization),
                 "-A", str(parametrization), "-A", str(parametrization),
                 "-W", str(parameter_W), "-H", str(parameter_H),
                 "-D", str(file_snow + "_stddev"),
@@ -218,20 +228,58 @@ def main(
                 "-s", str(skipping),
                 "-t", str(thinning),
                 "-A", str(parametrization), "-A", str(parametrization),
+                "-A", str(parametrization), "-A", str(parametrization),
                 "-W", str(parameter_W), "-H", str(parameter_H),
                 "-D", str(file_ice + "_stddev"),
                 "-m", str(file_ice + "_median"),
 #                "-g", str(file_ice + "_histogram"),
-                "-I", str(1)])            
+                "-I", str(1)])         
+
+    subprocess.run([
+            "mpirun", "-np", str(independent_chains),
+            "./post_mean_mpi", "-i", 
+            "results/ch.dat", "-o", file_cs2_penetration,
+            "-x", str(minlon), "-X", str(maxlon),
+            "-y", str(minlat), "-Y", str(maxlat),
+            "-s", str(skipping),
+            "-t", str(thinning),
+            "-A", str(parametrization), "-A", str(parametrization),
+            "-A", str(parametrization), "-A", str(parametrization),
+            "-W", str(parameter_W), "-H", str(parameter_H),
+            "-D", str(file_cs2_penetration + "_stddev"),
+            "-m", str(file_cs2_penetration + "_median"),
+#                "-g", str(file_cs2_penetration + "_histogram"),
+            "-I", str(2)])            
+       
+    subprocess.run([
+            "mpirun", "-np", str(independent_chains),
+            "./post_mean_mpi", "-i", 
+            "results/ch.dat", "-o", file_ak_penetration,
+            "-x", str(minlon), "-X", str(maxlon),
+            "-y", str(minlat), "-Y", str(maxlat),
+            "-s", str(skipping),
+            "-t", str(thinning),
+            "-A", str(parametrization), "-A", str(parametrization),
+            "-A", str(parametrization), "-A", str(parametrization),
+            "-W", str(parameter_W), "-H", str(parameter_H),
+            "-D", str(file_ak_penetration + "_stddev"),
+            "-m", str(file_ak_penetration + "_median"),
+    #                "-g", str(file_ice + "_histogram"),
+            "-I", str(3)])            
+       
        
     '''
     Step 4: Produce and save plots
     '''
     snow_mat = np.loadtxt(file_snow)
     ice_mat = np.loadtxt(file_ice)
+    cs2_penetration_mat = np.loadtxt(file_cs2_penetration)
+    ak_penetration_mat = np.loadtxt(file_ak_penetration)
 
     snow_mat = mask_observations(cs2_mean, snow_mat)
     ice_mat = mask_observations(cs2_mean, ice_mat)
+    cs2_penetration_mat = mask_observations(cs2_mean, cs2_penetration_mat)
+    ak_penetration_mat = mask_observations(ak_mean,ak_penetration_mat)
 
 
     lon = np.linspace(minlon, maxlon, 160)
@@ -245,15 +293,23 @@ def main(
 
 
     if render_matrix:
-        fig, ax = plt.subplots(1, 2, figsize=(15, 12))
+        fig, ax = plt.subplots(2, 2, figsize=(15, 12))
         
-        img = ax[0].imshow(snow_mat, cmap='seismic', aspect='auto', extent=extent, interpolation='None')
-        ax[0].set_title('Snow thickness')
-        plt.colorbar(img, ax=ax[0])
+        img = ax[0, 0].imshow(snow_mat, cmap='seismic', aspect='auto', extent=extent, interpolation='None')
+        ax[0, 0].set_title('Snow thickness')
+        plt.colorbar(img, ax=ax[0, 0])
 
-        img = ax[1].imshow(ice_mat, cmap='seismic', aspect='auto', extent=extent, interpolation='None')
-        ax[1].set_title('Ice thickness')
-        plt.colorbar(img, ax=ax[1])
+        img = ax[0, 1].imshow(ice_mat, cmap='seismic', aspect='auto', extent=extent, interpolation='None')
+        ax[0, 1].set_title('Ice thickness')
+        plt.colorbar(img, ax=ax[0, 1])
+
+        img = ax[1, 0].imshow(cs2_penetration_mat, cmap='seismic', aspect='auto', extent=extent, interpolation='None')
+        ax[1, 0].set_title('CryoSat-2 penetration factor')
+        plt.colorbar(img, ax=ax[1, 0])
+
+        img = ax[1, 1].imshow(ak_penetration_mat, cmap='seismic', aspect='auto', extent=extent, interpolation='None')
+        ax[1, 1].set_title('AltiKa-2 penetration factor')
+        plt.colorbar(img, ax=ax[1, 1])
 
         plt.show()
 
@@ -273,14 +329,33 @@ def main(
         m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=ice_mat, cmap="seismic")
         plt.colorbar(label=r'Ice Thickness (m)')
 
+        ax = fig.add_subplot(223)
+        m = Basemap(projection='lcc', resolution=None, lat_0=-90, lon_0=0, lat_1=89.9, lon_1=180, width=1E7, height=0.5E7)
+        draw_map(m)
+        m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=cs2_penetration_mat, cmap="seismic")
+        plt.colorbar(label=r'CryoSat-2 Penetration Factor')
+
+
+        ax = fig.add_subplot(224)
+        m = Basemap(projection='lcc', resolution=None, lat_0=-90, lon_0=0, lat_1=89.9, lon_1=180, width=1E7, height=0.5E7)
+        draw_map(m)
+        m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=ak_penetration_mat, cmap="seismic")
+        plt.colorbar(label=r'AltiKa Penetration Factor')
+
 
         plt.show()
 
     snow_std = np.loadtxt(file_snow + "_stddev")
     ice_std = np.loadtxt(file_ice + "_stddev")
+    cs2_std = np.loadtxt(file_cs2_penetration + "_stddev")
+    ak_std = np.loadtxt(file_ak_penetration + "_stddev")
+
 
     snow_std = mask_observations(cs2_mean, snow_std)
     ice_std = mask_observations(cs2_mean, ice_std)
+    cs2_std = mask_observations(cs2_mean, cs2_std)
+    ak_std = mask_observations(cs2_mean, ak_std)
+
 
 
     if render_stddev:
@@ -297,6 +372,20 @@ def main(
         draw_map(m)
         m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=ice_std, cmap="seismic")
         plt.colorbar(label=r'Ice Thickness Std (m)')
+
+        ax = fig.add_subplot(223)
+        m = Basemap(projection='lcc', resolution=None, lat_0=-90, lon_0=0, lat_1=89.9, lon_1=180, width=1E7, height=0.5E7)
+        draw_map(m)
+        m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=cs2_std, cmap="seismic")
+        plt.colorbar(label=r'CryoSat-2 Penetration Factor Std')
+
+
+        ax = fig.add_subplot(224)
+        m = Basemap(projection='lcc', resolution=None, lat_0=-90, lon_0=0, lat_1=89.9, lon_1=180, width=1E7, height=0.5E7)
+        draw_map(m)
+        m.scatter(lon_g, lat_g, latlon=True, alpha=1, s=0.5, c=ak_std, cmap="seismic")
+        plt.colorbar(label=r'AltiKa Penetration Factor Std')
+
 
 
         plt.show()

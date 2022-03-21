@@ -102,7 +102,7 @@ int gvcart_loaddata_(int * filename_len,
                 break;
 
             case AK_FREEBOARD_OBS:
-                n = 4;
+                n = 3;
                 mi[0] = SNOW_MODEL;
                 mi[1] = ICE_MODEL;
                 mi[2] = AK_PENETRATION_MODEL;
