@@ -52,27 +52,27 @@ fb_path2="../data/CPOM/freeboard_daily_processed/Bristol_LARM/AK/dailyFB_50km_20
 
 '''
 def main(
-    observation_points = 600,
-    model_1 = "Gaussian",
-    model_2 = "PseudoFranke",
+    observation_points = 25,
+    model_1 = "SyntheticSnow",
+    model_2 = "SyntheticIce",
     noise = 0.1,
     verbose=False,
     minlat = 0, maxlat = 7950000.0/1000000,
     minlon = 0, maxlon = 7950000.0/1000000,
     parametrization = 2,
-    iterations_number = 100000,
+    iterations_number = 250000,
     verbosity = 5000,
     independent_chains = 4,
     temperature_levels = 1,
-    maximum_temperature = 2.0,
+    maximum_temperature = 5.0,
     iterations_between_tempering_attempts = 10,
-    skipping = 10000,
-    thinning = 2,
+    skipping = 50000,
+    thinning = 5,
     render_map=True,
     render_matrix=False,
-    render_models = True,
-    render_median = True,
-    render_stddev = True,
+    render_models = False,
+    render_median = False,
+    render_stddev = False,
     render_histogram = True
     ):
 

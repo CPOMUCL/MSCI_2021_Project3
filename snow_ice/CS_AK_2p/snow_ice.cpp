@@ -4,6 +4,8 @@
 
 #include "genericinterface.hpp"
 
+#include "snowicesynthetic.hpp"
+
 typedef enum {
     SNOW_MODEL = 0,
     ICE_MODEL = 1
@@ -44,6 +46,20 @@ int gvcart_initialise_(int * nmodels,
                        int * nhierarchical) {
     * nmodels = 2; // Snow thickness and Ice thickness for CryoSat-2 and AltiKa
     * nhierarchical = 2; // CryoSat-2 and AltiKa Observations
+
+    synthetic_add("HorizontalCosine1", tidesynthetic_horizontal_cosine1);
+    synthetic_add("HorizontalCosine2", tidesynthetic_horizontal_cosine2);
+    synthetic_add("HorizontalCosine3", tidesynthetic_horizontal_cosine3);
+
+    synthetic_add("VerticalCosine1", tidesynthetic_vertical_cosine1);
+    synthetic_add("VerticalCosine2", tidesynthetic_vertical_cosine2);
+    synthetic_add("VerticalCosine3", tidesynthetic_vertical_cosine3);
+
+    synthetic_add("TasSea", tidesynthetic_tas_sea);
+    synthetic_add("TasLand", tidesynthetic_tas_land);
+
+    synthetic_add("SyntheticSnow", synthetic_gaussian_snow);
+    synthetic_add("SyntheticIce", synthetic_gaussian_ice);
 
 
     return 0;

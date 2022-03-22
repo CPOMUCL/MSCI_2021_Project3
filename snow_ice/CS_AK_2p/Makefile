@@ -27,6 +27,7 @@ LIBS = -L../../lib -ldelaunay \
 	$(shell gsl-config --libs)
 
 TARGETOBJS = snow_ice.o \
+	snowicesynthetic.o
 
 TARGETS = mksynthetic \
 	snow_ice \
@@ -46,6 +47,9 @@ TARGETS = mksynthetic \
 all : $(TARGETS)
 
 snow_ice.o : snow_ice.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $<
+
+snowicesynthetic.o : snowicesynthetic.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
 ../base/%.o : ../base/%.cpp
