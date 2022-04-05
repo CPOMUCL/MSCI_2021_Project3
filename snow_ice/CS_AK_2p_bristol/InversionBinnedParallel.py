@@ -62,15 +62,15 @@ def main(
     initial_cells = 1,
     iterations_number = 200000,
     verbosity = 50000,
-    independent_chains = 4,
-    temperature_levels = 1,
+    independent_chains = 2,
+    temperature_levels = 2,
     maximum_temperature = 2.0,
     iterations_between_tempering_attempts = 10,
     skipping = 100000,
     thinning = 5,
     render_map=True,
     render_matrix=False,
-    render_observations=False,
+    render_observations=True,
     render_median = False,
     render_stddev = False,
     render_histogram = True
@@ -82,6 +82,7 @@ def main(
     '''
     Step 1: Data cleaning and adapting to the TransTessellate standard
     '''
+    mask = np.load("../data/CPOM/freeboard_daily_processed/CS2_CPOM/dailyFB_50km_2019-2020_season.pkl", allow_pickle=True)
     fb1 = np.load(fb_path1, allow_pickle=True)
     fb2 = np.load(fb_path2, allow_pickle=True)
     
@@ -96,8 +97,10 @@ def main(
     shape = (sliding_window, 160, 160)
     ak_map = np.empty(shape)
     cs2_map = np.empty(shape)
+    mask_map = np.empty(shape)
 
     for i, date in enumerate(list(fb1.keys())[100:100+sliding_window]):
+        mask_map[i] += mask[date][:160, :160]
         cs2_map[i] += fb1[date][:160, :160]
         ak_map[i] += fb2[date][:160, :160]
 
@@ -106,6 +109,7 @@ def main(
         warnings.simplefilter("ignore", category=RuntimeWarning)
         cs2_mean = np.nanmean(cs2_map, axis=0)
         ak_mean = np.nanmean(ak_map, axis=0)
+        mask_mean = np.nanmean(mask_map, axis=0)
 
 
     ak_observations = []
@@ -114,9 +118,9 @@ def main(
     shape = list(fb1.values())[0].shape
     for i in range(160):
         for j in range(160):
-            if not np.isnan(cs2_mean[i][j]):
+            if not np.isnan(mask_mean[i][j]) and not np.isnan(cs2_mean[i][j]):
                 cs2_observations.append([grid_x[i][j]/1000000, grid_y[i][j]/1000000, 0, cs2_mean[i][j], 0.01])                    
-            if not np.isnan(ak_mean[i][j]):
+            if not np.isnan(mask_mean[i][j]) and not np.isnan(ak_mean[i][j]):
                 ak_observations.append([grid_x[i][j]/1000000, grid_y[i][j]/1000000, 1, ak_mean[i][j], 0.01])
 
 

@@ -10,6 +10,7 @@ import subprocess
 import matplotlib.pyplot as plt
 from itertools import chain
 from mpl_toolkits.basemap import Basemap
+from sklearn.metrics import r2_score
 import os
 import warnings
 
@@ -62,8 +63,8 @@ def main(
     initial_cells = 1,
     iterations_number = 200000,
     verbosity = 50000,
-    independent_chains = 4,
-    temperature_levels = 1,
+    independent_chains = 2,
+    temperature_levels = 2,
     maximum_temperature = 2.0,
     iterations_between_tempering_attempts = 10,
     skipping = 100000,
@@ -353,7 +354,19 @@ def main(
 
         plt.show()
 
-    return snow_mat, ice_mat
+    observations = pd.read_csv(f"observations.txt", skiprows=1, names=['Longitude', 'Latitude', 'Type', 'Value', 'Sigma'], delimiter="\s+")
+    all_residuals = np.zeros((4, len(observations)))
+    for i in range(4):
+        all_residuals[i] = np.loadtxt(f"results/residuals.txt-00{i}")
+    errors_across_all_chains = np.mean(all_residuals, axis=0)
+
+    rmse = np.sqrt(np.mean((errors_across_all_chains)**2))
+    md = np.mean(errors_across_all_chains)
+    trues = observations['Value']
+    predicted = trues + errors_across_all_chains
+    coefficient_of_dermination = r2_score(trues, predicted)
+    
+    return {'rmse': rmse, 'md': md, 'r2': coefficient_of_dermination}
 
 if __name__ == "__main__":
     main()
